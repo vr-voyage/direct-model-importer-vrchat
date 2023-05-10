@@ -1,0 +1,12 @@
+{
+  "name": "io.github.vr-voyage.direct-model-importer",
+  "displayName": "Voyage's direct model importer",
+  "version": "0.0.1",
+  "description": "Describe this Package",
+  "gitDependencies": {},
+  "vpmDependencies": {
+    "com.vrchat.udonsharp": "1.1.8"
+  },
+  "legacyFolders": {},
+  "legacyFiles": {}
+}

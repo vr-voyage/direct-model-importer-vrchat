@@ -1,0 +1,19 @@
+{
+    "name": "io.github.vr-voyage.direct-model-importer",
+    "references": [
+        "VRC.SDK3",
+        "VRC.SDKBase",
+        "UdonSharp.Lib",
+        "UdonSharp.Runtime",
+        "VRC.Udon.Serialization.OdinSerializer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
