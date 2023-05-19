@@ -17,8 +17,9 @@ enum EncodingMethod
 public class ModelsImporter : UdonSharpBehaviour
 {
     public VRCUrl modelUrl;
+    public VRCUrl textureUrl;
 
-    public Material imageMaterial;
+    public Material textureMaterial;
 
     const float supportedVersionMax = 1;
     const string expectedDataType = "VoyageModelEncoder";
@@ -27,18 +28,18 @@ public class ModelsImporter : UdonSharpBehaviour
 
     IUdonEventReceiver receiver;
 
-    //public TMPro.TextMeshPro debugOutput;
+    public ModelImporterInfoPanel debugPanel;
 
     VRCImageDownloader downloader;
+    TextureInfo textureInfo;
     void OnEnable()
     {
         receiver = (IUdonEventReceiver)this;
-        TextureInfo textureInfo = new TextureInfo();
+        textureInfo = new TextureInfo();
         textureInfo.WrapModeU = TextureWrapMode.Clamp;
         textureInfo.WrapModeV = TextureWrapMode.Clamp;
         textureInfo.FilterMode = FilterMode.Point;
-        downloader = new VRCImageDownloader();
-        downloader.DownloadImage(modelUrl, imageMaterial, receiver, textureInfo);
+        NextPhase();
         //VRCStringDownloader.LoadUrl(modelUrl, receiver);
         //VRCStringDownloader
     }
@@ -51,26 +52,60 @@ public class ModelsImporter : UdonSharpBehaviour
         Debug.Log(message);
     }
 
+    int downloadStage = 0;
+
+    void NextPhase()
+    {
+        VRCUrl downloadUrl;
+        Material usedMaterial = null;
+        switch(downloadStage)
+        {
+            case 0:
+                downloadUrl = modelUrl;
+            break;
+            case 1:
+                downloadUrl = textureUrl;
+                usedMaterial = textureMaterial;
+            break;
+            default:
+                return;
+        }
+
+        if (downloadUrl == null || downloadUrl.ToString() == "") return;
+        downloader = new VRCImageDownloader();
+        downloader.DownloadImage(downloadUrl, usedMaterial, receiver, textureInfo);
+    }
+
+    void PhaseSucceeded(Texture2D result)
+    {
+        bool success = false;
+        switch(downloadStage)
+        {
+            case 0:
+                Mesh mesh = new Mesh();
+                success = MeshFromColors(result.GetPixels(), mesh);
+                if (success)
+                {
+                    outMeshFilter.sharedMesh = mesh;
+                }
+                downloader.Dispose();
+            break;
+            case 1:
+                success = true;
+                return;
+        }
+        if (success)
+        {
+            downloadStage++;
+            NextPhase();
+        }
+    }
+
     public override void OnImageLoadSuccess(IVRCImageDownload result)
     {
         if (result.State == VRCImageDownloadState.Complete)
-        {
-            var image = result.Result;
-            DebugLog(image.format.ToString());
-            
-            Mesh mesh = new Mesh();
-            bool transformed = MeshFromColors(image.GetPixels(), mesh);
-            if (transformed)
-            {
-                outMeshFilter.sharedMesh = mesh;
-            }
-            downloader.Dispose();
-            if (transformed)
-            {
-                Destroy(this);
-            }
-            
-            
+        {  
+            PhaseSucceeded(result.Result);
         }
     }
 
@@ -158,7 +193,7 @@ public class ModelsImporter : UdonSharpBehaviour
     const float VOY = 0x00564f59;
     const float AGE = 0x00454741;
 
-    public const int metadataSize = 16;
+    public const int metadataSize = 64;
     public const int minimumDataSize =
         metadataSize
         + 3  // vertices
@@ -215,10 +250,15 @@ public class ModelsImporter : UdonSharpBehaviour
         Vector2[] uvs = new Vector2[nUVS];
         int[] indices = new int[nIndices];
 
-        Debug.Log($"vertices : {nVertices}");
+        if (debugPanel != null)
+        {
+            debugPanel.ShowValues(true, nVertices, nNormals, nUVS, nIndices, "Meow");
+        }
+
+        /*Debug.Log($"vertices : {nVertices}");
         Debug.Log($"normals : {nNormals}");
         Debug.Log($"uvs : {nUVS}");
-        Debug.Log($"indices : {nIndices}");
+        Debug.Log($"indices : {nIndices}");*/
 
         int start = metadataSize / 4;
         int cursor = start;
@@ -229,9 +269,10 @@ public class ModelsImporter : UdonSharpBehaviour
                 currentCol.r,
                 currentCol.g,
                 currentCol.b);
+            //Debug.Log($"Vertex {v} : {vertex.x},{vertex.y},{vertex.z}");
             vertices[v] = vertex;
         }
-        Debug.Log($"cursor after vertices : {cursor - start} ({(cursor - start) * 4})");
+        /*Debug.Log($"cursor after vertices : {cursor - start} ({(cursor - start) * 4})");*/
         for (int n = 0; n < nNormals; n++, cursor++)
         {
             Color currentCol = colors[cursor];
@@ -239,9 +280,10 @@ public class ModelsImporter : UdonSharpBehaviour
                 currentCol.r,
                 currentCol.g,
                 currentCol.b);
+            //Debug.Log($"Normal {n} : {normal.x},{normal.y},{normal.z}");
             normals[n] = normal;
         }
-        Debug.Log($"cursor after normals : {cursor - start} ({(cursor - start) * 4})");
+        /*Debug.Log($"cursor after normals : {cursor - start} ({(cursor - start) * 4})");*/
         for (int u = 0; u < nUVS; u++)
         {
             Color currentCol = colors[cursor];
@@ -251,7 +293,7 @@ public class ModelsImporter : UdonSharpBehaviour
             uvs[u] = uv;
             cursor++;
         }
-        Debug.Log($"cursor after uvs : {cursor - start} ({(cursor - start) * 4})");
+        /*Debug.Log($"cursor after uvs : {cursor - start} ({(cursor - start) * 4})");*/
 
         int alignedIndices = nIndices / 4 * 4;
         int currentIndex = 0;
@@ -259,13 +301,13 @@ public class ModelsImporter : UdonSharpBehaviour
         {
             
             Color currentCol = colors[cursor];
-            Debug.Log($"Index : {currentIndex} ({cursor*4}) - Indices : {(int)currentCol.r},{(int)currentCol.g},{(int)currentCol.b},{(int)currentCol.a}");
+            /*Debug.Log($"Index : {currentIndex} ({cursor*4}) - Indices : {(int)currentCol.r},{(int)currentCol.g},{(int)currentCol.b},{(int)currentCol.a}");*/
             indices[currentIndex+0] = (int)currentCol.r;
             indices[currentIndex+1] = (int)currentCol.g;
             indices[currentIndex+2] = (int)currentCol.b;
             indices[currentIndex+3] = (int)currentCol.a;
         }
-        Debug.Log($"cursor after indices : {cursor - start} ({(cursor - start) * 4})");
+        /*Debug.Log($"cursor after indices : {cursor - start} ({(cursor - start) * 4})");*/
         int remainingIndices = nIndices - alignedIndices;
         if (remainingIndices > 0)
         {

@@ -8,12 +8,16 @@ using System;
 public class MeshToTexture : EditorWindow
 {
     public Mesh mesh;
-    const int metadataVertex = 8;
+    const int currentVersion = 1;
+    const int metadataVersion = 4;
+    const int metadataVertices = 8;
     const int metadataNormals = 9;
     const int metadataUvs = 10;
     const int metadataIndices = 11;
+    const int metadataSize = 64;
     const int float_size = 4;
     const int int_size = 4;
+    const int nFloatsInColor = 4;
 
     SerializedObject serialO;
     SerializedProperty meshSerialized;
@@ -74,10 +78,27 @@ public class MeshToTexture : EditorWindow
     void DumpMetadata(float[] metadata)
     {
         Debug.Log($"{(int)metadata[0]:X} {(int)metadata[1]:X}");
-        Debug.Log($"vertices : {metadata[metadataVertex]}");
+        Debug.Log($"vertices : {metadata[metadataVertices]}");
         Debug.Log($"normals  : {metadata[metadataNormals]}");
         Debug.Log($"uvs      : {metadata[metadataUvs]}");
         Debug.Log($"indices  : {metadata[metadataIndices]}");
+    }
+
+    private void ZeroFill(float[] array)
+    {
+        int arraySize = array.Length;
+        for (int i = 0; i < arraySize; i++)
+        {
+            array[i] = 0;
+        }
+    }
+
+    const float VOY = 0x00564f59;
+    const float AGE = 0x00454741;
+
+    Texture2D CreateEXRCompatibleTexture(int textureWidth, int textureHeight)
+    {
+        return new Texture2D(textureWidth, textureHeight, TextureFormat.RGBAFloat, false);
     }
 
     Texture2D EncodeMeshAsTexture(Mesh mesh)
@@ -121,7 +142,10 @@ public class MeshToTexture : EditorWindow
         int pow2_part = 1 << (pow2 / 2);
         Debug.Log($"{n_pixels} < {pow2_size} - {pow2_part}");
 
-        Texture2D texture = new Texture2D(pow2_part, pow2_part, TextureFormat.RGBAFloat, false);
+        int textureWidth = pow2_part;
+        int textureHeight = pow2_part;
+
+        Texture2D texture = CreateEXRCompatibleTexture(textureWidth, textureHeight);
         float[] meshData = new float[vertices.Length * 4 + normals.Length * 4 + uvs.Length * 4];
         int m = 0;
         for (int v = 0; v < vertices.Length; v++)
@@ -150,20 +174,22 @@ public class MeshToTexture : EditorWindow
             m += 4;
         }
         Debug.Log($"cursor after uvs : {m}");
-        float[] metadata = new float[16] { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+        float[] metadata = new float[metadataSize];
+        ZeroFill(metadata);
 
-        metadata[0] = 0x00564f59; // VOY
-        metadata[1] = 0x00454741; // AGE
+        metadata[0] = VOY; // VOY
+        metadata[1] = AGE; // AGE
         metadata[2] = float.PositiveInfinity;
         metadata[3] = float.NaN;
-        metadata[4] = 0; // Version
-        metadata[8]  = vertices.Length;
-        metadata[9]  = normals.Length;
-        metadata[10] = uvs.Length;
-        metadata[11] = indices.Length;
+        metadata[metadataVersion] = 0; // Version
+
+        metadata[metadataVertices] = vertices.Length;
+        metadata[metadataNormals]  = normals.Length;
+        metadata[metadataUvs]      = uvs.Length;
+        metadata[metadataIndices]  = indices.Length;
 
         DumpMetadata(metadata);
-        float[] pixels = new float[pow2_part * pow2_part * 4];
+        float[] pixels = new float[textureWidth * textureHeight * 4 /* floats per color */];
 
         Debug.Log($"meshData[0] = {meshData[0]}");
         Debug.Log($"meshData[0] = {((int)meshData[0]):X}");
@@ -204,10 +230,8 @@ public class MeshToTexture : EditorWindow
         }
         return floatValues;
     }
-    const float VOY = 0x00564f59;
-    const float AGE = 0x00454741;
 
-    public const int metadataSize = 16;
+
     public const int minimumDataSize =
         metadataSize
         + 3  // vertices
@@ -255,22 +279,22 @@ public class MeshToTexture : EditorWindow
 
         var infoCol = colors[2];
         int nVertices = (int)infoCol.r;
-        int nNormals = (int)infoCol.g;
-        int nUVS = (int)infoCol.b;
-        int nIndices = (int)infoCol.a;
+        int nNormals  = (int)infoCol.g;
+        int nUVS      = (int)infoCol.b;
+        int nIndices  = (int)infoCol.a;
 
         Vector3[] vertices = new Vector3[nVertices];
-        Vector3[] normals = new Vector3[nNormals];
-        Vector2[] uvs = new Vector2[nUVS];
-        int[] indices = new int[nIndices];
+        Vector3[] normals  = new Vector3[nNormals];
+        Vector2[] uvs      = new Vector2[nUVS];
+        int[] indices      = new int[nIndices];
 
         Debug.Log($"vertices : {nVertices}");
         Debug.Log($"normals : {nNormals}");
         Debug.Log($"uvs : {nUVS}");
         Debug.Log($"indices : {nIndices}");
 
-        int start = metadataSize / 4;
-        int cursor = start;
+        int startIndex = metadataSize / nFloatsInColor;
+        int cursor = startIndex;
         for (int v = 0; v < nVertices; v++, cursor++)
         {
             Color currentCol = colors[cursor];
@@ -280,7 +304,7 @@ public class MeshToTexture : EditorWindow
                 currentCol.b);
             vertices[v] = vertex;
         }
-        Debug.Log($"cursor after vertices : {cursor - start} ({(cursor - start) * 4})");
+        Debug.Log($"cursor after vertices : {cursor - startIndex} ({(cursor - startIndex) * 4})");
         for (int n = 0; n < nNormals; n++, cursor++)
         {
             Color currentCol = colors[cursor];
@@ -290,7 +314,7 @@ public class MeshToTexture : EditorWindow
                 currentCol.b);
             normals[n] = normal;
         }
-        Debug.Log($"cursor after normals : {cursor - start} ({(cursor - start) * 4})");
+        Debug.Log($"cursor after normals : {cursor - startIndex} ({(cursor - startIndex) * 4})");
         for (int u = 0; u < nUVS; u++)
         {
             Color currentCol = colors[cursor];
@@ -300,7 +324,7 @@ public class MeshToTexture : EditorWindow
             uvs[u] = uv;
             cursor++;
         }
-        Debug.Log($"cursor after uvs : {cursor - start} ({(cursor - start) * 4})");
+        Debug.Log($"cursor after uvs : {cursor - startIndex} ({(cursor - startIndex) * 4})");
 
         int alignedIndices = nIndices / 4 * 4;
         int currentIndex = 0;
@@ -314,7 +338,7 @@ public class MeshToTexture : EditorWindow
             indices[currentIndex+2] = (int)currentCol.b;
             indices[currentIndex+3] = (int)currentCol.a;
         }
-        Debug.Log($"cursor after indices : {cursor - start} ({(cursor - start) * 4})");
+        Debug.Log($"cursor after indices : {cursor - startIndex} ({(cursor - startIndex) * 4})");
         int remainingIndices = nIndices - alignedIndices;
         if (remainingIndices > 0)
         {
