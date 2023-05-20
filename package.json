@@ -2,12 +2,11 @@
   "name": "io.github.vr-voyage.direct-model-importer",
   "displayName": "Voyage's direct model importer",
   "version": "0.0.1",
-  "description": "Describe this Package",
+  "description": "Import encoded meshes directly in VRChat",
   "gitDependencies": {},
   "vpmDependencies": {
     "com.vrchat.udonsharp": "1.1.8"
   },
   "legacyFolders": {},
-  "legacyFiles": {},
-  "localPath": "C:\\Users\\PouiposaurusRex\\Documents\\Unity\\ABrandNewWorldAwaits\\Packages\\io.github.vr-voyage.direct-model-importer"
+  "legacyFiles": {}
 }

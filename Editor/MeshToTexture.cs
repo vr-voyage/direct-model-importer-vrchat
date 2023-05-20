@@ -8,7 +8,7 @@ using System;
 public class MeshToTexture : EditorWindow
 {
     public Mesh mesh;
-    const int currentVersion = 1;
+    const int currentVersion = 2;
     const int metadataVersion = 4;
     const int metadataVertices = 8;
     const int metadataNormals = 9;
@@ -18,6 +18,9 @@ public class MeshToTexture : EditorWindow
     const int float_size = 4;
     const int int_size = 4;
     const int nFloatsInColor = 4;
+
+    const float VOY = 0x00564f59;
+    const float AGE = 0x00454741;
 
     SerializedObject serialO;
     SerializedProperty meshSerialized;
@@ -93,8 +96,7 @@ public class MeshToTexture : EditorWindow
         }
     }
 
-    const float VOY = 0x00564f59;
-    const float AGE = 0x00454741;
+
 
     Texture2D CreateEXRCompatibleTexture(int textureWidth, int textureHeight)
     {
