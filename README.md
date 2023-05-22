@@ -1,5 +1,7 @@
 # /!\ ALPHA SOFTWARE. CAN BREAK AND CHANGE COMPLETELY OVER TIME /!\
 
+[blender-demo-en.webm](https://github.com/vr-voyage/direct-model-importer-vrchat/assets/84687350/421c49b2-435d-43da-9817-4e3d2e05ad1a)
+
 # Direct Model Importer
 
 This is currently a Proof of Concept of how to regenerate meshes encoded in EXR
