@@ -359,7 +359,7 @@ namespace VoyageVRSNS
 
             if (debugPanel != null)
             {
-                debugPanel.ShowValues(true, nVertices, nNormals, nUVS, nIndices, "Meow");
+                debugPanel.ShowValues(true, nVertices, nNormals, nUVS, nIndices, "");
             }
 
             /*Debug.Log($"vertices : {nVertices}");
