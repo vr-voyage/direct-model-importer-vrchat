@@ -19,14 +19,11 @@ namespace VoyageVRSNS
         public TMPro.TextMeshProUGUI uvsText;
         public TMPro.TextMeshProUGUI indicesText;
         public TMPro.TextMeshProUGUI debugText;
+        public TMPro.TextMeshProUGUI statusText;
 
         public VoyageVRSNS.ModelsImporter modelImporter;
         public VRCUrlInputField modelUrlInput;
-        public VRCUrlInputField textureUrlInput;
 
-        [HideInInspector]
-        public VRCUrl emptyUrl;
-        
         public void ResetDisplay()
         {
             DisplayText(downloadedUrlText, "");
@@ -36,6 +33,7 @@ namespace VoyageVRSNS
             DisplayText(uvsText, "");
             DisplayText(indicesText, "");
             DisplayText(debugText, "");
+            DisplayText(statusText, "");
         }
 
         void DisplayText(TMPro.TextMeshProUGUI uiText, string content)
@@ -66,10 +64,16 @@ namespace VoyageVRSNS
             DisplayText(debugText,    additionalContent);
         }
 
+        public void ShowStatus(string statusMessage)
+        {
+            DisplayText(statusText, statusMessage);
+        }
+
         public void ModelDownloaded()
         {
+            Debug.Log("Model Downloaded !");
             if (modelUrlInput == null) return;
-            modelUrlInput.SetUrl(emptyUrl);
+            modelUrlInput.SetUrl(VRCUrl.Empty);
         }
 
         public void DownloadButtonPushed()
@@ -78,15 +82,10 @@ namespace VoyageVRSNS
             if (modelImporter.isDownloading) return;
 
             VRCUrl modelUrl = modelUrlInput.GetUrl();
-            VRCUrl textureUrl = null;
-            if (textureUrlInput != null)
-            {
-                textureUrl = textureUrlInput.GetUrl();
-            }
 
             Debug.Log($"Trying to download : {modelUrl}");
 
-            modelImporter.DownloadModel(modelUrl, new VRCUrl[] { textureUrl });
+            modelImporter.DownloadModel(modelUrl);
         }
     }
 }
