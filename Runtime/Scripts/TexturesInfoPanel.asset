@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: TexturesInfoPanel
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 689d3207f72de2d4d9e0095da8656fab,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: ba16f12ec51be104ba17ee6d80361834,
     type: 2}
   udonAssembly: 
   assemblyError: 

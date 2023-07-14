@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: TexturesDownloader
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 169da7a8a109119429fc927e9dbfcd51,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: 1237e9a540ea317449de9ff55eb0420d,
     type: 2}
   udonAssembly: 
   assemblyError: 

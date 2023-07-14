@@ -36,7 +36,7 @@ namespace VoyageVRSNS
 
         VRCImageDownloader downloader;
 
-        private void OnEnable()
+        void OnEnable()
         {
             if (targetRenderer == null)
             {
@@ -53,6 +53,7 @@ namespace VoyageVRSNS
 
         void CancelDownload()
         {
+            Debug.Log("<color=orange>[TexturesDownloader] Canceling download</color>");
             if (downloader != null)
             {
                 downloader.Dispose();
@@ -69,6 +70,7 @@ namespace VoyageVRSNS
 
         public void ResetAndHide()
         {
+            Debug.Log("<color=orange>Called Reset and Hide !</color>");
             ResetEverything();
             if (panel != null) panel.Hide();
         }
@@ -99,6 +101,14 @@ namespace VoyageVRSNS
             }
         }
 
+        public override void OnOwnershipTransferred(VRCPlayerApi player)
+        {
+            if (player == Networking.LocalPlayer)
+            {
+                YouGotOwnership();
+            }
+        }
+
         void YouGotOwnership()
         {
             syncedTextureUrl = textureUrl;
@@ -107,6 +117,7 @@ namespace VoyageVRSNS
 
         public override void OnDeserialization()
         {
+            Debug.Log($"<color=orange>[TexturesDownloader] OnDeserialization - {syncedTextureUrl} <-> {textureUrl}</color>");
             if ((syncedTextureUrl == null) | (syncedTextureUrl == textureUrl)) return;
 
             textureUrl = syncedTextureUrl;
@@ -115,6 +126,7 @@ namespace VoyageVRSNS
 
         void Download()
         {
+            Debug.Log($"<color=orange>[TexturesDownloader] Download {textureUrl}</color>");
             if (textureUrl == null) return;
             ResetEverything();
 
@@ -127,7 +139,7 @@ namespace VoyageVRSNS
 
             if (panel) panel.ShowDownloadURL(textureUrl);
 
-            
+            Debug.Log($"<color=orange>[TexturesDownloader> Starting to download {textureUrl}</color>");
             downloader = new VRCImageDownloader();
             downloader.DownloadImage(
                 url: textureUrl,
@@ -141,6 +153,7 @@ namespace VoyageVRSNS
             /* Well, the image downloader will automatically assign the
              * texture to the material, so nothing to do here...
              */
+            Debug.Log("<color=green>[TexturesDownloader] Download success !</color>");
             if (panel)
             {
                 panel.TextureDownloaded();

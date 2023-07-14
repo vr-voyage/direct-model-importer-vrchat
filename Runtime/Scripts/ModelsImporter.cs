@@ -7,6 +7,9 @@ using VRC.SDK3.StringLoading;
 using VRC.SDK3.Data;
 using VRC.Udon.Common.Interfaces;
 using VRC.SDK3.Image;
+using UnityEngine.Rendering;
+using UnityEditor;
+using System;
 
 namespace VoyageVRSNS
 {
@@ -26,9 +29,10 @@ namespace VoyageVRSNS
         [UdonSynced]
         public VRCUrl syncedModelUrl;
 
-        const float supportedVersionMax = 2;
+        const float supportedVersionMax = 3;
 
         public MeshFilter outMeshFilter;
+        public MeshRenderer meshRenderer;
 
         IUdonEventReceiver receiver;
 
@@ -36,6 +40,8 @@ namespace VoyageVRSNS
 
         VRCImageDownloader downloader;
         TextureInfo textureInfo;
+
+        public Material[] preloadedMaterials;
 
         [HideInInspector]
         public bool isDownloading = false;
@@ -51,10 +57,18 @@ namespace VoyageVRSNS
             + 2  // uvs
             + 3; // indices
 
-        public TexturesDownloader texturesDownloader;
+        //public TexturesDownloader texturesDownloader;
+        public DMIMaterialSlot[] materialSlots;
         void OnEnable()
         {
             if (outMeshFilter == null)
+            {
+                Debug.Log("[VoyageVRSNS.ModelsImporter] Mesh Filter not set !");
+                gameObject.SetActive(false);
+                return;
+            }
+
+            if (meshRenderer == null)
             {
                 Debug.Log("[VoyageVRSNS.ModelsImporter] Mesh Renderer not set !");
                 gameObject.SetActive(false);
@@ -66,7 +80,7 @@ namespace VoyageVRSNS
             textureInfo.WrapModeU = TextureWrapMode.Clamp;
             textureInfo.WrapModeV = TextureWrapMode.Clamp;
             textureInfo.FilterMode = FilterMode.Point;
-            if (texturesDownloader) texturesDownloader.ResetAndHide();
+            //if (texturesDownloader) texturesDownloader.ResetAndHide();
 
         }
 
@@ -95,7 +109,7 @@ namespace VoyageVRSNS
                 panel.ResetDisplay();
             }
 
-            if (texturesDownloader) texturesDownloader.ResetAndHide();
+            //if (texturesDownloader) texturesDownloader.ResetAndHide();
 
         }
 
@@ -106,7 +120,13 @@ namespace VoyageVRSNS
             if (providedModelUrl == null) return;
 
             modelUrl = providedModelUrl;
-            
+
+            // Since this is the user entry point
+            // We disable the texture download HERE.
+            // Basically, if a user starts a new download, reset
+            // the texture.
+            //if (texturesDownloader) texturesDownloader.ResetAndHide();
+
             Sync();
             Download();
             
@@ -178,6 +198,28 @@ namespace VoyageVRSNS
                 textureInfo);
         }
 
+        public int nMaterialsSet = 0;
+
+        void SetupMaterialSlots(MeshRenderer usedRenderer)
+        {
+            var materials = usedRenderer.sharedMaterials;
+            int nSlots = materialSlots.Length;
+            int nMaterials = materials.Length;
+            Debug.Log($"[ModelsImporter] (SetupMaterialSlots) nSlots : {nSlots} - nMaterials : {nMaterials}");
+            int maxSlots = Mathf.Min(nSlots, nMaterials);
+            for (int slot = 0; slot < maxSlots; slot++)
+            {
+                var materialSlot = materialSlots[slot];
+                var material = materials[slot];
+
+                if ((materialSlot == null) | (material == null)) continue;
+
+                materialSlot.SetupFor(material);
+            }
+            nMaterialsSet = maxSlots;
+            panel.RefreshMaterials();
+        }
+
         public override void OnImageLoadSuccess(IVRCImageDownload result)
         {
             if (result.State == VRCImageDownloadState.Complete)
@@ -186,7 +228,8 @@ namespace VoyageVRSNS
                 if (MeshFromColors(result.Result.GetPixels(), mesh))
                 {
                     outMeshFilter.sharedMesh = mesh;
-                    if (texturesDownloader != null) texturesDownloader.Show();
+                    SetupMaterialSlots(meshRenderer);
+                    //if (texturesDownloader != null) texturesDownloader.Show();
                 }
 
 
@@ -208,6 +251,45 @@ namespace VoyageVRSNS
             }
             if (downloader != null) downloader.Dispose();
             isDownloading = false;
+        }
+
+        void SetupMaterials(Mesh mesh)
+        {
+            if (meshRenderer == null)
+            {
+                return;
+            }
+
+            int materialsNeeded = mesh.subMeshCount;
+            int materialsAvailable = preloadedMaterials.Length;
+            Material[] newMaterials = new Material[materialsNeeded];
+
+            int minMaterialsUseable = Mathf.Min(materialsNeeded, materialsAvailable);
+
+            for (int m = 0; m < minMaterialsUseable; m++)
+            {
+                /* This actually Instantiate a new material.
+                 * For some reason, you can't do Instantiate(material)
+                 * with Udon
+                 */
+                newMaterials[m] = preloadedMaterials[m];
+            }
+            meshRenderer.sharedMaterials = newMaterials;
+        }
+
+        void SetupSingleMesh(Color[] colors, Mesh mesh)
+        {
+
+        }
+
+        public MeshFilter cloningFilter;
+        /* Because Udon is fucking dumb ! */
+        Mesh InstantiateMesh(Mesh toClone)
+        {
+            cloningFilter.sharedMesh = toClone;
+            Mesh newMesh = cloningFilter.mesh;
+            cloningFilter.sharedMesh = null;
+            return newMesh;
         }
 
         bool MeshFromColors(Color[] colors, Mesh mesh)
@@ -239,10 +321,12 @@ namespace VoyageVRSNS
                 return false;
             }
             var infoCol = colors[2];
+            Color infoCol2 = colors[3];
             int nVertices = (int)infoCol.r;
             int nNormals = (int)infoCol.g;
             int nUVS = (int)infoCol.b;
             int nIndices = (int)infoCol.a;
+            int nSubmeshes = currentVersion > 2 ? (int)infoCol2.r : 0;
 
             Vector3[] vertices = new Vector3[nVertices];
             Vector3[] normals = new Vector3[nNormals];
@@ -317,13 +401,47 @@ namespace VoyageVRSNS
                     indices[currentIndex] = (int)currentCol.b;
                     currentIndex++;
                 }
+                cursor++;
             }
 
-
+            
             mesh.vertices = vertices;
             mesh.normals = normals;
             mesh.uv = uvs;
             mesh.triangles = indices;
+
+            if (nSubmeshes > 1)
+            {
+                CombineInstance[] combines = new CombineInstance[nSubmeshes];
+
+                for (int submesh = 0; submesh < nSubmeshes; submesh++)
+                {
+                    Color currentColor = colors[cursor];
+                    int indexStart = (int)currentColor.r;
+                    int indexCount = (int)currentColor.g;
+                    int[] subMeshIndices = new int[indexCount];
+                    Array.Copy(indices, indexStart, subMeshIndices, 0, indexCount);
+
+                    Mesh newMesh = InstantiateMesh(mesh);
+                    newMesh.triangles = subMeshIndices;
+                    newMesh.Optimize();
+
+                    CombineInstance newInstance = new CombineInstance();
+                    newInstance.mesh = newMesh;
+                    combines[submesh] = newInstance;
+
+                    cursor++;
+                }
+
+                mesh.Clear();
+                mesh.CombineMeshes(combines, mergeSubMeshes: false, useMatrices: false);
+                Debug.Log(mesh.vertices.Length);
+
+                Debug.Log(mesh.triangles.Length);
+                Debug.Log(mesh.subMeshCount);
+            }
+
+            SetupMaterials(mesh);
 
             return true;
         }

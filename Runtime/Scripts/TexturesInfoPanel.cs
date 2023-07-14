@@ -27,14 +27,20 @@ namespace VoyageVRSNS
 
         public void Hide()
         {
-            gameObject.SetActive(false);
+            //gameObject.SetActive(false);
+            Debug.Log("Calling Hide !");
+            textureUrlInput.interactable = false;
+            textureUrlInput.readOnly = true;
             ClearText(urlText);
             ClearText(statusText);
         }
 
         public void Show()
         {
-            gameObject.SetActive(true);
+            //gameObject.SetActive(true);
+            Debug.Log("Calling Show !");
+            textureUrlInput.interactable = true;
+            textureUrlInput.readOnly = false;
         }
 
         public void ShowDownloadURL(VRCUrl url)

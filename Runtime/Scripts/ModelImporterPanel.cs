@@ -4,6 +4,7 @@ using TMPro;
 using UdonSharp;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 using VRC.SDK3.Components;
 using VRC.SDKBase;
 using VRC.Udon;
@@ -12,28 +13,68 @@ namespace VoyageVRSNS
 {
     public class ModelImporterPanel : UdonSharpBehaviour
     {
-        public TMPro.TextMeshProUGUI downloadedUrlText;
+        public InputField downloadedUrlText;
         public TMPro.TextMeshProUGUI correctText;
         public TMPro.TextMeshProUGUI verticesText;
-        public TMPro.TextMeshProUGUI normalsText;
-        public TMPro.TextMeshProUGUI uvsText;
         public TMPro.TextMeshProUGUI indicesText;
-        public TMPro.TextMeshProUGUI debugText;
         public TMPro.TextMeshProUGUI statusText;
 
         public VoyageVRSNS.ModelsImporter modelImporter;
         public VRCUrlInputField modelUrlInput;
 
+        public DMIPanelMaterial materialPanel;
+        public Button[] materialsButtons;
+        
+        void ResetMaterialPanel()
+        {
+            materialPanel.CleanPanel();
+        }
+
+        void ResetButtons()
+        {
+            int nButtons = materialsButtons.Length;
+            for (int button = 0; button < nButtons; button++)
+            {
+                var materialButton = materialsButtons[button];
+                if (materialButton == null) continue;
+                materialButton.gameObject.SetActive(false);
+            }
+        }
+
+        public void RefreshMaterials()
+        {
+            ResetMaterialPanel();
+            ResetButtons();
+            int nMaterials = modelImporter.nMaterialsSet;
+            int nButtons = materialsButtons.Length;
+            int minUseableButtons = Mathf.Min(nButtons, nMaterials);
+            
+            for (int button = 0; button < minUseableButtons; button++)
+            {
+                var materialButton = materialsButtons[button];
+                if (materialButton == null) continue;
+                materialButton.gameObject.SetActive(true);
+            }
+            ShowMaterial(0);
+        }
+
+        public void ShowMaterial(int index)
+        {
+            ResetMaterialPanel();
+            Debug.Log($"[ModelImporterPanel] (ShowMaterial) index : {index} - materialsSet : {modelImporter.nMaterialsSet}");
+            if (index >= modelImporter.nMaterialsSet) return;
+            materialPanel.SetupFor(modelImporter.materialSlots[index]);
+
+        }
+
         public void ResetDisplay()
         {
-            DisplayText(downloadedUrlText, "");
-            DisplayText(correctText, "");
+            if (downloadedUrlText != null) downloadedUrlText.text = "";
+            DisplayText(correctText,  "");
             DisplayText(verticesText, "");
-            DisplayText(normalsText, "");
-            DisplayText(uvsText, "");
-            DisplayText(indicesText, "");
-            DisplayText(debugText, "");
-            DisplayText(statusText, "");
+            DisplayText(indicesText,  "");
+            DisplayText(statusText,   "");
+            ResetMaterialPanel();
         }
 
         void DisplayText(TMPro.TextMeshProUGUI uiText, string content)
@@ -45,7 +86,8 @@ namespace VoyageVRSNS
 
         public void ShowDownloadedModel(VRCUrl downloadedModelUrl)
         {
-            DisplayText(downloadedUrlText, downloadedModelUrl.ToString());
+            if ((downloadedUrlText == null) | (downloadedModelUrl == null)) return;
+            downloadedUrlText.text = downloadedModelUrl.ToString();
         }
 
         public void ShowValues(
@@ -58,10 +100,7 @@ namespace VoyageVRSNS
         {
             DisplayText(correctText,  isCorrect.ToString());
             DisplayText(verticesText, nVertices.ToString());
-            DisplayText(normalsText,  nNormals.ToString());
-            DisplayText(uvsText,      nUvs.ToString());
             DisplayText(indicesText,  nIndices.ToString());
-            DisplayText(debugText,    additionalContent);
         }
 
         public void ShowStatus(string statusMessage)
