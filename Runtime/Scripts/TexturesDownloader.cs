@@ -139,7 +139,7 @@ namespace VoyageVRSNS
 
             if (panel) panel.ShowDownloadURL(textureUrl);
 
-            Debug.Log($"<color=orange>[TexturesDownloader> Starting to download {textureUrl}</color>");
+            Debug.Log($"<color=orange>[TexturesDownloader] Starting to download {textureUrl}</color>");
             downloader = new VRCImageDownloader();
             downloader.DownloadImage(
                 url: textureUrl,

@@ -1,8 +1,8 @@
 {
   "name": "io.github.vr-voyage.direct-model-importer",
-  "displayName": "Voyage's direct model importer",
+  "displayName": "Voyage's Direct Model Importer",
   "version": "0.0.2",
-  "description": "Import encoded meshes directly in VRChat",
+  "description": "Import image-encoded meshes directly in VRChat",
   "gitDependencies": {},
   "vpmDependencies": {
     "com.vrchat.udonsharp": "1.1.8"

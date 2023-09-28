@@ -34,6 +34,12 @@ public class DMITextureDownloader : UdonSharpBehaviour
         if ((material == null) | (property == null) | (downloadState == null)) return;
         if ((property.Trim() == "") | (downloadState.Result == null)) return;
 
+        Debug.Log("<color=green>Apply texture !</color>");
+        foreach (var keyword in material.shaderKeywords)
+        {
+            Debug.Log(keyword);
+        }
+        material.EnableKeyword("_NORMALMAP");
         material.SetTexture(property, downloadState.Result);
         
 

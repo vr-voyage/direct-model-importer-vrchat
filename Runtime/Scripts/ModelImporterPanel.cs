@@ -58,6 +58,8 @@ namespace VoyageVRSNS
             ShowMaterial(0);
         }
 
+        int lastShownIndex = -1;
+
         public void ShowMaterial(int index)
         {
             ResetMaterialPanel();
@@ -65,6 +67,16 @@ namespace VoyageVRSNS
             if (index >= modelImporter.nMaterialsSet) return;
             materialPanel.SetupFor(modelImporter.materialSlots[index]);
 
+            lastShownIndex = index;
+        }
+
+        public void ChangeShader()
+        {
+            if (modelImporter.SetMaterialShader(lastShownIndex, 1))
+            {
+                ShowMaterial(lastShownIndex);
+                modelImporter.materialSlots[lastShownIndex].RefreshTextureSlots();
+            }
         }
 
         public void ResetDisplay()

@@ -59,6 +59,7 @@ namespace VoyageVRSNS
 
         //public TexturesDownloader texturesDownloader;
         public DMIMaterialSlot[] materialSlots;
+        public DMIDatabase database;
         void OnEnable()
         {
             if (outMeshFilter == null)
@@ -83,6 +84,8 @@ namespace VoyageVRSNS
             //if (texturesDownloader) texturesDownloader.ResetAndHide();
 
         }
+
+        
 
         void DebugLog(string message)
         {
@@ -176,7 +179,6 @@ namespace VoyageVRSNS
             isDownloading = false;
         }
 
-        /* FIXME : Change this name */
         void Download()
         {
             ResetDisplay();
@@ -220,6 +222,23 @@ namespace VoyageVRSNS
             panel.RefreshMaterials();
         }
 
+        public bool SetMaterialShader(int materialIndex, int shaderIndex)
+        {
+            if ((materialIndex < 0) | (materialIndex >= meshRenderer.sharedMaterials.Length))
+            {
+                return false;
+            }
+
+            var shader = database.GetShader(shaderIndex);
+            if (shader == null) return false;
+            
+            var material = meshRenderer.sharedMaterials[materialIndex];
+            if (material == null) return false;
+
+            material.shader = shader;
+            return true;
+        }
+
         public override void OnImageLoadSuccess(IVRCImageDownload result)
         {
             if (result.State == VRCImageDownloadState.Complete)
@@ -253,6 +272,23 @@ namespace VoyageVRSNS
             isDownloading = false;
         }
 
+        void InstantiateMaterials(
+            Material[] materials,
+            int nMaterialsToInstantiate,
+            MeshRenderer temporaryRenderer)
+        {
+            for (int m = 0; m < nMaterialsToInstantiate; m++)
+            {
+                /* This actually Instantiate a new material.
+                 * For some reason, you can't do Instantiate(material)
+                 * with Udon
+                 */
+                temporaryRenderer.material = materials[m];
+
+                materials[m] = temporaryRenderer.material;
+            }
+        }
+
         void SetupMaterials(Mesh mesh)
         {
             if (meshRenderer == null)
@@ -266,19 +302,18 @@ namespace VoyageVRSNS
 
             int minMaterialsUseable = Mathf.Min(materialsNeeded, materialsAvailable);
 
-            for (int m = 0; m < minMaterialsUseable; m++)
-            {
-                /* This actually Instantiate a new material.
-                 * For some reason, you can't do Instantiate(material)
-                 * with Udon
-                 */
-                newMaterials[m] = preloadedMaterials[m];
-            }
-            meshRenderer.sharedMaterials = newMaterials;
-        }
+            InstantiateMaterials(newMaterials, minMaterialsUseable, meshRenderer);
+            //for (int m = 0; m < minMaterialsUseable; m++)
+            //{
+            //    /* This actually Instantiate a new material.
+            //     * For some reason, you can't do Instantiate(material)
+            //     * with Udon
+            //     */
+            //    meshRenderer.material = preloadedMaterials[m];
 
-        void SetupSingleMesh(Color[] colors, Mesh mesh)
-        {
+            //    newMaterials[m] = meshRenderer.material;
+            //}
+            meshRenderer.materials = newMaterials;
 
         }
 

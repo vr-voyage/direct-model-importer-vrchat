@@ -119,11 +119,12 @@ public class DMIMaterialSlot : UdonSharpBehaviour
         }
     }
 
-    void RefreshTextureSlots()
+    public void RefreshTextureSlots()
     {
         if (material == null) Disable();
         DisconnectTextureSlots();
-        ConnectTextureSlots(material.GetTexturePropertyNames());
+        ConnectTextureSlots(database.GetMaterialProperties(material));
+        
     }
 
     private void OnEnable()

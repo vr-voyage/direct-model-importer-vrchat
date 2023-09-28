@@ -8,6 +8,15 @@ public class DMIDatabase : UdonSharpBehaviour
 {
     public Material[] materials;
 
+    public string[] GetMaterialProperties(Material material)
+    {
+
+
+        if (material == null) return new string[0];
+
+        return material.GetTexturePropertyNames();
+    }
+
     public Shader GetShader(int shaderID)
     {
         Material shaderRepresentation = GetMaterial(shaderID);
